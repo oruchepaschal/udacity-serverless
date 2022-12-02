@@ -1,6 +1,6 @@
 org: captchacoder
-app: serverless-todo-app-1
-service: serverless-todo-app-1
+app: serverless-todo-app
+service: serverless-todo-app
 frameworkVersion: '3.25.1'
 
 plugins:
@@ -11,11 +11,9 @@ plugins:
 provider:
   name: aws
   runtime: nodejs14.x
-  #lambdaHashingVersion: '20201221'
 
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
-  #profile: ${opt:profile, 'captcha'}
 
   tracing:
     lambda: true
@@ -24,9 +22,9 @@ provider:
   environment:
     TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
-    ATTACHMENT_S3_BUCKET: serverless-todo-images-bucket-${self:provider.stage}-v1
+    ATTACHMENT_S3_BUCKET: serverless-todo-images-bucket-${self:provider.stage}-v
 
-  logs:
+  #logs:
     restApi: true
 
   iam:
@@ -166,36 +164,38 @@ resources:
               KeyType: RANGE
             Projection:
               ProjectionType: ALL
-    AttachmentsBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:provider.environment.ATTACHMENT_S3_BUCKET}
-        CorsConfiguration:
-          CorsRules:
-            - AllowedMethods:
-                - GET
-                - PUT
-                - POST
-                - DELETE
-                - HEAD
-              AllowedOrigins:
-                - '*'
-              AllowedHeaders:
-                - '*'
-              MaxAge: 300
-    BucketPolicy:
-      Type: AWS::S3::BucketPolicy
-      Properties:
-        Bucket:
-          Ref: AttachmentsBucket
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Action:
-                - 's3:PutObjectAcl'
-                - 's3:PutObject'
-                - 's3:GetObject'
-              Effect: Allow
-              Resource: 'arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*'
-              Principal: '*'
-              Bucket: !Ref AttachmentsBucket
+    
+    # AttachmentsBucket:
+    #   Type: AWS::S3::Bucket
+    #   Properties:
+    #     BucketName: ${self:provider.environment.ATTACHMENT_S3_BUCKET}
+    #     CorsConfiguration:
+    #       CorsRules:
+    #         - AllowedMethods:
+    #             - GET
+    #             - PUT
+    #             - POST
+    #             - DELETE
+    #             - HEAD
+    #           AllowedOrigins:
+    #             - '*'
+    #           AllowedHeaders:
+    #             - '*'
+    #           MaxAge: 300
+    # BucketPolicy:
+    #   Type: AWS::S3::BucketPolicy
+    #   Properties:
+    #     Bucket:
+    #       Ref: AttachmentsBucket
+    #     PolicyDocument:
+    #       #Id: UdacityServerless
+    #       Version: '2012-10-17'
+    #       Statement:
+    #         - Action:
+    #             - 's3:PutObjectAcl'
+    #             - 's3:PutObject'
+    #             - 's3:GetObject'
+    #           Effect: Allow
+    #           Resource: 'arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*'
+    #           Principal: '*'
+    #           Bucket: !Ref AttachmentsBucket
