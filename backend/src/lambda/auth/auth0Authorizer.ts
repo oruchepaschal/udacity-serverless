@@ -1,26 +1,20 @@
-import { CustomAuthorizerEvent, CustomAuthorizerResult } from 'aws-lambda'
+import { CustomAuthorizerResult } from 'aws-lambda'
 import 'source-map-support/register'
-import { verify} from 'jsonwebtoken'
+
+import { verify, decode } from 'jsonwebtoken'
 import { createLogger } from '../../utils/logger'
 import Axios from 'axios'
+import { Jwt } from '../../auth/Jwt'
 import { JwtPayload } from '../../auth/JwtPayload'
 
-const logger = createLogger('auth');
+const logger = createLogger('auth')
 
-// Todo
-const jwksUrl = 'https://captchacoder.us.auth0.com/.well-known/jwks.json';
+const jwksUrl = 'https://captchacoder.us.auth0.com/.well-known/jwks.json'
 
-
-export const handler = async (
-  event: CustomAuthorizerEvent
-): Promise<CustomAuthorizerResult> => {
-
+export const handler = async (event): Promise<CustomAuthorizerResult> => {
   logger.info('Authorizing a user', event.authorizationToken)
-
   try {
-
     const jwtToken = await verifyToken(event.authorizationToken)
-
     logger.info('User was authorized', jwtToken)
 
     return {
@@ -37,7 +31,6 @@ export const handler = async (
       }
     }
   } catch (e) {
-
     logger.error('User not authorized', { error: e.message })
 
     return {
@@ -57,20 +50,20 @@ export const handler = async (
 }
 
 async function verifyToken(authHeader: string): Promise<JwtPayload> {
-  try {
+  const token = getToken(authHeader)
+  const jwt: Jwt = decode(token, { complete: true }) as Jwt
 
-    const token = getToken(authHeader)
-    const res = await Axios.get(jwksUrl);
+  const res = await Axios.get(jwksUrl)
+  const keys = res.data.keys
+  const signingKeys = keys.find(key => key.kid === jwt.header.kid)
 
-    // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
-    const pemData = res['data']['keys'][0]['x5c'][0]
-    const cert = `-----BEGIN CERTIFICATE-----\n${pemData}\n-----END CERTIFICATE-----`
+  if (!signingKeys) throw new Error("signing keys are non existent")
 
-    return verify(token, cert, { algorithms: ['RS256'] }) as JwtPayload
-  } catch(err){
-    logger.error('Fail to authenticate', err)
-  }
+  const cert = `-----BEGIN CERTIFICATE-----\n${signingKeys.x5c[0]}\n-----END CERTIFICATE-----`
+  
+  return verify(token, cert, { algorithms: ['RS256']}) as JwtPayload
 }
+
 
 function getToken(authHeader: string): string {
   if (!authHeader) throw new Error('No authentication header')
@@ -83,4 +76,3 @@ function getToken(authHeader: string): string {
 
   return token
 }
-
